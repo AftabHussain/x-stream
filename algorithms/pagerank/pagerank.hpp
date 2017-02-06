@@ -22,10 +22,13 @@
 #include "../../core/x-lib.hpp"
 
 namespace algorithm {
+  
   namespace sg_simple {
    
    	 	template <typename F>
+    	
     	class pagerank {
+    	
     	private:
 
       		struct vertex {//vertex structure
@@ -58,11 +61,14 @@ namespace algorithm {
 				return key;
       		}
 
+      //initialization		
       static bool init(unsigned char* vertex_state, unsigned long 
       		vertex_index, unsigned long bsp_phase, per_processor_data *cpu_state) {
 			
 			struct vertex* vertices = (struct vertex*)vertex_state;
 			vertices->sum  = 0;
+
+			//Setting up rank the first time
 			if(bsp_phase == 0) {
 	 		 	vertices->degree = 0;
 	 		 	vertices->rank = 1.0;
@@ -83,8 +89,10 @@ namespace algorithm {
 			niters = 1 + vm["pagerank::niters"].as<unsigned long>();
       	}
 
+      //The Gather Phase	
       static bool apply_one_update(unsigned char* vertex_state,unsigned char* 
-      			update_stream, per_processor_data* per_cpu_data, unsigned long bsp_phase) {
+      		update_stream, per_processor_data* per_cpu_data, unsigned long bsp_phase) {
+			
 			struct update* u = (struct update*)update_stream;
 			struct vertex* vertices = (struct vertex*)vertex_state;
 			struct vertex* v = &vertices[x_lib::configuration::map_offset(u->target)];
@@ -98,33 +106,35 @@ namespace algorithm {
 	  		return true;
       	}
 
-      static bool generate_update(unsigned char* vertex_state,
-				  unsigned char* edge_format,
-				  unsigned char* update_stream,
-				  per_processor_data* per_cpu_data,
-				  unsigned long bsp_phase){
-		vertex_t src, dst;
-		F::read_edge(edge_format, src, dst);
+      	//The Scatter Phase	
+    	static bool generate_update(unsigned char* vertex_state,
+			unsigned char* edge_format,
+			unsigned char* update_stream,
+			per_processor_data* per_cpu_data,
+			unsigned long bsp_phase){
+			
+			vertex_t src, dst;
+			F::read_edge(edge_format, src, dst);
 
-		struct vertex* vertices = (struct vertex*)vertex_state;
-		struct vertex* v = &vertices[x_lib::configuration::map_offset(src)];
+			struct vertex* vertices = (struct vertex*)vertex_state;
+			struct vertex* v = &vertices[x_lib::configuration::map_offset(src)];
 
-		if (bsp_phase == 0) {//increment vertex degrees in the first iteration
-		  v->degree++;
-		  return false;
-		}
-		else {// if not the 0th phase
+			if (bsp_phase == 0) {//increment vertex degrees in the first iteration
+			  v->degree++;
+			  return false;
+			}
+			else {// if not the 0th phase
 	 		 struct update* u = (struct update*)update_stream;
 	 		 u->target = dst;
 	  			if(bsp_phase == 1) {// in the first iteration.
-	   			 u->rank = 1.0/v->degree;
+	   			 	u->rank = 1.0/v->degree;
 	  			}
 	  			else {//in other iterations
 	    			u->rank = v->rank / v->degree;
 	  			}
-	  		return true;
-		}
-      }
+	  			return true;
+			}
+      	}
 
       static per_processor_data* create_per_processor_data(unsigned long processor_id){
 			return NULL;
