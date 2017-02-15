@@ -22,12 +22,11 @@
 // without syscall overheads of pthread_barrier
 
 class x_barrier {
-  volatile unsigned long count[2];
+  volatile unsigned long count[2]; //to prevent optimization on count
   volatile unsigned long sense;
   unsigned long expected;
  public:
-  x_barrier(unsigned long expected_in)
-    :sense(0), expected(expected_in)
+  x_barrier(unsigned long expected_in):sense(0), expected(expected_in)
   {
     count[0] = 0;
     count[1] = 0;
